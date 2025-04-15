@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../app/generated/prisma';
 import { hash } from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -20,62 +20,103 @@ async function main() {
     console.log('Admin user created:', admin);
 
     // Create categories
-    const categories = await Promise.all([
-      prisma.category.upsert({
-        where: { name: 'Electronics' },
-        update: {},
-        create: { name: 'Electronics' },
-      }),
-      prisma.category.upsert({
-        where: { name: 'Clothing' },
-        update: {},
-        create: { name: 'Clothing' },
-      }),
-      prisma.category.upsert({
-        where: { name: 'Books' },
-        update: {},
-        create: { name: 'Books' },
-      }),
-      prisma.category.upsert({
-        where: { name: 'Home & Kitchen' },
-        update: {},
-        create: { name: 'Home & Kitchen' },
-      }),
-    ]);
-    console.log('Categories created successfully');
+    const categories = [
+      { name: 'Abstract', slug: 'abstract' },
+      { name: 'Moroccan', slug: 'moroccan' },
+      { name: 'Minimalist', slug: 'minimalist' },
+      { name: 'Nature', slug: 'nature' }
+    ];
 
-    // Create products
-    const products = await Promise.all([
-      prisma.product.upsert({
-        where: { id: 'prod-1' },
-        update: {},
-        create: {
-          id: 'prod-1',
-          name: 'Wireless Headphones',
-          description: 'Premium wireless headphones with noise cancellation',
-          price: 149.99,
-          stock: 50,
-          categoryId: categories[0].id,
-          images: ['/products/headphones.jpg'],
-          featured: true,
-        },
-      }),
-      prisma.product.upsert({
-        where: { id: 'prod-2' },
-        update: {},
-        create: {
-          id: 'prod-2',
-          name: 'Smart Watch',
-          description: 'Track your fitness and stay connected',
-          price: 199.99,
-          stock: 30,
-          categoryId: categories[0].id,
-          images: ['/products/smartwatch.jpg'],
-          featured: true,
-        },
-      }),
-    ]);
-    console.log('Products created successfully');
+    for (const categoryData of categories) {
+      // Check if category exists
+      const existingCategory = await prisma.category.findUnique({
+        where: { slug: categoryData.slug }
+      });
+
+      if (!existingCategory) {
+        await prisma.category.create({
+          data: categoryData
+        });
+        console.log(`Created category: ${categoryData.name}`);
+      } else {
+        console.log(`Category ${categoryData.name} already exists`);
+      }
+    }
+
+    // Get category IDs
+    const allCategories = await prisma.category.findMany();
+    const categoryMap = allCategories.reduce((map, category) => {
+      map[category.slug] = category.id;
+      return map;
+    }, {} as Record<string, string>);
+
+    // Create example products
+    const products = [
+      {
+        name: 'Abstract Blue Composition',
+        slug: 'abstract-blue-composition',
+        description: 'A stunning abstract composition with shades of blue',
+        price: 1200,
+        images: ['/images/products/collection2.png'],
+        stock: 10,
+        categoryId: categoryMap['abstract'],
+        artist: 'Jane Doe',
+        featured: true
+      },
+      {
+        name: 'Moroccan Patterns',
+        slug: 'moroccan-patterns',
+        description: 'Traditional Moroccan patterns with vibrant colors',
+        price: 1500,
+        images: ['/images/products/collection1.png'],
+        stock: 5,
+        categoryId: categoryMap['moroccan'],
+        artist: 'Mohammed Ali',
+        featured: true
+      },
+      {
+        name: 'Minimalist Composition',
+        slug: 'minimalist-composition',
+        description: 'Clean lines and subtle colors in a minimalist aesthetic',
+        price: 900,
+        images: ['/images/products/slideshow1.png'],
+        stock: 8,
+        categoryId: categoryMap['minimalist'],
+        artist: 'Alex Smith',
+        featured: false
+      },
+      {
+        name: 'Natural Landscape',
+        slug: 'natural-landscape',
+        description: 'A breathtaking landscape with natural elements',
+        price: 2200,
+        images: ['/images/products/slideshow2.png'],
+        stock: 3,
+        categoryId: categoryMap['nature'],
+        artist: 'Sarah Johnson',
+        featured: true
+      }
+    ];
+
+    for (const productData of products) {
+      // Check if product exists
+      const existingProduct = await prisma.product.findUnique({
+        where: { slug: productData.slug }
+      });
+
+      if (!existingProduct) {
+        await prisma.product.create({
+          data: {
+            ...productData,
+            price: productData.price.toString(), // Convert to string for Decimal
+            gallery: [] // Empty gallery
+          }
+        });
+        console.log(`Created product: ${productData.name}`);
+      } else {
+        console.log(`Product ${productData.name} already exists`);
+      }
+    }
 
     // Create a customer
     const customer = await prisma.customer.upsert({
@@ -111,7 +152,7 @@ async function main() {
     });
     console.log('Order created successfully');
     
-    console.log('Seeding completed successfully!');
+    console.log('Seed data created successfully');
   } catch (error) {
     console.error('Error seeding database:', error);
   }
@@ -119,7 +160,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('Error seeding database:', e);
     process.exit(1);
   })
   .finally(async () => {

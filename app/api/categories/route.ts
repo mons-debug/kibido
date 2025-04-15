@@ -1,9 +1,7 @@
-import { PrismaClient } from "@/app/generated/prisma";
+import { prisma } from "@/app/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-
-const prisma = new PrismaClient();
 
 // GET /api/categories - Get all categories
 export async function GET() {
@@ -21,7 +19,15 @@ export async function GET() {
       },
     });
     
-    return NextResponse.json(categories);
+    // Transform the response to include product count
+    const formattedCategories = categories.map((category: any) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      productCount: category._count.products
+    }));
+
+    return NextResponse.json(formattedCategories);
   } catch (error) {
     console.error("Error fetching categories:", error);
     return NextResponse.json(

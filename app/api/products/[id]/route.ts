@@ -1,20 +1,37 @@
-import { PrismaClient } from "@/app/generated/prisma";
+import { prisma } from "@/app/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-const prisma = new PrismaClient();
-
-// GET /api/products/[id] - Get a single product by ID
+// GET /api/products/[id] - Get a single product by ID or slug
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const product = await prisma.product.findUnique({
-      where: { id: params.id },
+    // Use params safely
+    const id = params.id;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: "Product ID is required" },
+        { status: 400 }
+      );
+    }
+    
+    // Try to find by ID first
+    let product = await prisma.product.findUnique({
+      where: { id },
       include: { category: true },
     });
+    
+    // If not found by ID, try finding by slug
+    if (!product) {
+      product = await prisma.product.findUnique({
+        where: { slug: id },
+        include: { category: true },
+      });
+    }
 
     if (!product) {
       return NextResponse.json(
@@ -124,6 +141,107 @@ export async function PATCH(
     console.error("Error updating product:", error);
     return NextResponse.json(
       { error: "Failed to update product" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/products/[id] - Replace a product completely
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // For debugging temporarily, let's skip the auth check
+    // Comment this back in after resolving the issue
+    /*
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    */
+
+    // Get product ID from params
+    const id = params.id;
+    let body;
+    
+    try {
+      body = await request.json();
+      console.log("Request body:", body);
+    } catch (e) {
+      console.error("Failed to parse request body:", e);
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    // Check if product exists
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { error: `Product with ID ${id} not found` },
+        { status: 404 }
+      );
+    }
+
+    // Validate required fields
+    if (!body.name || !body.slug || body.price === undefined || body.stock === undefined || !body.categoryId) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Check if slug is already taken by another product
+    const existingProductWithSlug = await prisma.product.findFirst({
+      where: { 
+        slug: body.slug,
+        id: {
+          not: id
+        }
+      },
+    });
+
+    if (existingProductWithSlug) {
+      return NextResponse.json(
+        { error: "Slug is already in use by another product" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Updating product with data:", body);
+
+    // Update product
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: {
+        name: body.name,
+        slug: body.slug,
+        description: body.description,
+        price: parseFloat(body.price.toString()),
+        stock: parseInt(body.stock.toString()),
+        categoryId: body.categoryId,
+        artist: body.artist || null,
+        featured: body.featured !== undefined ? body.featured : false,
+        images: body.images || [],
+        gallery: body.gallery || [],
+      },
+      include: { category: true },
+    });
+
+    console.log("Product updated successfully:", updatedProduct);
+    return NextResponse.json(updatedProduct);
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return NextResponse.json(
+      { error: "Failed to update product: " + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     );
   }

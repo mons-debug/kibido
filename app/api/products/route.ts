@@ -1,27 +1,64 @@
-import { PrismaClient } from "@/app/generated/prisma";
+import { prisma } from "@/app/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-const prisma = new PrismaClient();
-
 // GET /api/products - Get all products
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const products = await prisma.product.findMany({
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get('categoryId');
+    const limit = searchParams.get('limit');
+    const featured = searchParams.get('featured') === 'true';
+    const sortBy = searchParams.get('sortBy');
+    
+    // Build query options
+    let queryOptions: any = {
       include: {
-        category: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        category: true
+      }
+    };
+    
+    // Add filters if provided
+    if (categoryId) {
+      queryOptions.where = {
+        ...queryOptions.where,
+        categoryId: categoryId
+      };
+    }
+    
+    if (featured) {
+      queryOptions.where = {
+        ...queryOptions.where,
+        featured: true
+      };
+    }
+    
+    // Add sorting if provided
+    if (sortBy) {
+      const [field, order] = sortBy.split(':');
+      queryOptions.orderBy = {
+        [field]: order.toLowerCase() === 'desc' ? 'desc' : 'asc'
+      };
+    } else {
+      // Default sort by createdAt descending (newest first)
+      queryOptions.orderBy = {
+        createdAt: 'desc'
+      };
+    }
+    
+    // Add limit if provided
+    if (limit) {
+      queryOptions.take = parseInt(limit);
+    }
+    
+    const products = await prisma.product.findMany(queryOptions);
     
     return NextResponse.json(products);
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error('Error fetching products:', error);
     return NextResponse.json(
-      { error: "Failed to fetch products" },
+      { error: 'Failed to fetch products' },
       { status: 500 }
     );
   }

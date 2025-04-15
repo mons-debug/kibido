@@ -233,7 +233,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/mounirbennassar/Documents/kibido/app/generated/prisma",
+      "value": "/Users/mac/Desktop/kibid/kibido/app/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -242,12 +242,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "darwin-arm64",
+        "value": "darwin",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/mounirbennassar/Documents/kibido/prisma/schema.prisma",
+    "sourceFilePath": "/Users/mac/Desktop/kibid/kibido/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
