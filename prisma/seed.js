@@ -100,7 +100,7 @@ async function main() {
     ];
 
     for (const productData of products) {
-      // Check if product exists
+      // Check if product exists - don't use 'latest' field
       const existingProduct = await prisma.product.findUnique({
         where: { slug: productData.slug }
       });

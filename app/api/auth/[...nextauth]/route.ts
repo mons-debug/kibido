@@ -3,14 +3,11 @@ import { compare } from "bcrypt";
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { Role } from "@/app/lib/types";
+import { db } from "@/app/lib/db";
 
 // PrismaClient is attached to the `global` object in development to prevent
 // exhausting your database connection limit.
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const prisma = globalForPrisma.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// MOVED THIS TO @/app/lib/db.ts
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -25,7 +22,7 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
+        const user = await db.user.findUnique({
           where: {
             email: credentials.email
           }

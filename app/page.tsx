@@ -36,6 +36,7 @@ interface Product {
     name: string;
   };
   featured: boolean;
+  latest: boolean;  // Add the latest flag
 }
 
 export default function HomePage() {
@@ -43,6 +44,7 @@ export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
   const [limitedOffers, setLimitedOffers] = useState<Product[]>([]);
+  const [latestProducts, setLatestProducts] = useState<Product[]>([]);  // New state for latest products
   const [loading, setLoading] = useState(true);
   const [activeSlide, setActiveSlide] = useState(0);
   const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
@@ -97,24 +99,42 @@ export default function HomePage() {
     const fetchProducts = async () => {
       try {
       setLoading(true);
-      const response = await fetch("/api/products", {
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch products: ${response.status}`);
+      
+      // Fetch products separately: all products and latest products
+      const [allProductsResponse, latestProductsResponse] = await Promise.all([
+        fetch("/api/products", {
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        }),
+        fetch("/api/products?latest=true&limit=4", {
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+      ]);
+      
+      if (!allProductsResponse.ok || !latestProductsResponse.ok) {
+        throw new Error(`Failed to fetch products`);
       }
-        const products = await response.json();
+      
+      const allProducts = await allProductsResponse.json();
+      const latestProductsData = await latestProductsResponse.json();
         
-        const processedProducts = products.map((product: Product) => ({
+      const processedProducts = allProducts.map((product: Product) => ({
           ...product,
           price: typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price)
         }));
         
+      const processedLatestProducts = latestProductsData.map((product: Product) => ({
+        ...product,
+        price: typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price)
+      }));
+      
         setFeaturedProducts(processedProducts.filter((p: Product) => p.featured).slice(0, 8));
       setTrendingProducts(processedProducts.slice(0, 6));
       setLimitedOffers(processedProducts.slice(6, 10));
+      setLatestProducts(processedLatestProducts); // Set the latest products from dedicated API call
       
         const views: Record<string, number> = {};
         processedProducts.forEach((product: Product) => {
@@ -241,7 +261,7 @@ export default function HomePage() {
                         ? 'object-[center_75%]'
                         : 'object-center'
                     }`}
-                  priority
+                    priority
                     sizes="(max-width: 768px) 100vw, 100vw"
                     quality={90}
                     loading="eager"
@@ -266,7 +286,7 @@ export default function HomePage() {
               />
             )
           ))}
-              </div>
+        </div>
             
         <div className="absolute inset-0 z-20 flex items-center">
           <div className="container mx-auto px-4 sm:px-6">
@@ -890,45 +910,47 @@ export default function HomePage() {
                         sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                       />
-                      <div className="absolute top-4 left-4">
+                      <div className="absolute top-4 left-4 z-10">
                         <div className="bg-brown-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-lg">
                           <Palette className="h-3.5 w-3.5" /> Featured Artist
                   </div>
                 </div>
                     </div>
                     
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-amber-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform -rotate-12">
-                          <Sparkles className="h-5 w-5" />
-                        </div>
-                        <h3 className="text-xl font-bold text-stone-900">Messari</h3>
+                    <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="bg-amber-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform -rotate-12">
+                            <Sparkles className="h-5 w-5" />
+                    </div>
+                          <h3 className="text-xl font-bold text-stone-900">Messari</h3>
                   </div>
                   
-                      <p className="text-sm text-stone-600 mb-6 line-clamp-3">Moroccan-inspired artwork featuring traditional patterns and cultural heritage symbols with modern techniques.</p>
-                      
-                      <div className="flex flex-wrap gap-4 mb-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                            <Palette className="h-4 w-4 text-brown-700" />
+                        <p className="text-sm text-stone-600 mb-6 line-clamp-3">Moroccan-inspired artwork featuring traditional patterns and cultural heritage symbols with modern techniques.</p>
+                        
+                        <div className="flex flex-wrap gap-4 mb-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
+                              <Palette className="h-4 w-4 text-brown-700" />
+                            </div>
+                            <span className="text-xs text-stone-600">Moroccan Style</span>
                           </div>
-                          <span className="text-xs text-stone-600">Moroccan Style</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                            <Eye className="h-4 w-4 text-brown-700" />
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
+                              <Eye className="h-4 w-4 text-brown-700" />
+                            </div>
+                            <span className="text-xs text-stone-600">24 artworks</span>
                           </div>
-                          <span className="text-xs text-stone-600">24 artworks</span>
                         </div>
                       </div>
                       
-                      <Link href="/frontend/artist/messari">
+                      <Link href="/frontend/artist/messari" className="block w-full z-10 relative">
                       <motion.button 
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full py-3 bg-brown-800 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all hover:bg-brown-900 hover:shadow-lg group"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="w-full py-4 px-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all hover:shadow-xl shadow-lg border border-amber-400 z-10 relative mt-2"
                         >
-                          View Profile <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                          View Profile <ArrowRight size={16} className="ml-1 transition-transform group-hover:translate-x-1" />
                       </motion.button>
                     </Link>
                     </div>
@@ -946,45 +968,47 @@ export default function HomePage() {
                         sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                       />
-                      <div className="absolute top-4 left-4">
+                      <div className="absolute top-4 left-4 z-10">
                         <div className="bg-brown-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-lg">
                           <Palette className="h-3.5 w-3.5" /> Featured Artist
                         </div>
                       </div>
                     </div>
                     
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-amber-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform -rotate-12">
-                          <Sparkles className="h-5 w-5" />
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="bg-amber-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform -rotate-12">
+                            <Sparkles className="h-5 w-5" />
+                          </div>
+                          <h3 className="text-xl font-bold text-stone-900">Axel</h3>
                         </div>
-                        <h3 className="text-xl font-bold text-stone-900">Axel</h3>
+                        
+                        <p className="text-sm text-stone-600 mb-6 line-clamp-3">Vibrant abstract expressions featuring bold colors and contemporary portraits that capture modern artistic movements.</p>
+                        
+                        <div className="flex flex-wrap gap-4 mb-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
+                              <Palette className="h-4 w-4 text-brown-700" />
+                            </div>
+                            <span className="text-xs text-stone-600">Abstract Style</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
+                              <Eye className="h-4 w-4 text-brown-700" />
+                            </div>
+                            <span className="text-xs text-stone-600">18 artworks</span>
+                          </div>
+                        </div>
                       </div>
                       
-                      <p className="text-sm text-stone-600 mb-6 line-clamp-3">Vibrant abstract expressions featuring bold colors and contemporary portraits that capture modern artistic movements.</p>
-                      
-                      <div className="flex flex-wrap gap-4 mb-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                            <Palette className="h-4 w-4 text-brown-700" />
-                          </div>
-                          <span className="text-xs text-stone-600">Abstract Style</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                            <Eye className="h-4 w-4 text-brown-700" />
-                          </div>
-                          <span className="text-xs text-stone-600">18 artworks</span>
-                        </div>
-                      </div>
-                      
-                      <Link href="/frontend/artist/axel">
+                      <Link href="/frontend/artist/axel" className="block w-full z-10 relative">
                     <motion.button 
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full py-3 bg-brown-800 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all hover:bg-brown-900 hover:shadow-lg group"
-                        >
-                          View Profile <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                          className="w-full py-4 px-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all hover:shadow-xl shadow-lg border border-amber-400 z-10 relative mt-2"
+                    >
+                          View Profile <ArrowRight size={16} className="ml-1 transition-transform group-hover:translate-x-1" />
                     </motion.button>
                       </Link>
                     </div>
@@ -1044,166 +1068,103 @@ export default function HomePage() {
             <div className="overflow-hidden px-4 sm:px-6">
               <motion.div 
                 id="latest-products-carousel"
-                className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 transition-transform duration-500 ease-out"
+                className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 transition-transform duration-500 ease-out"
                 drag="x"
-                dragConstraints={{ left: -800, right: 0 }}
+                dragConstraints={{ left: -1100, right: 0 }}
                 dragElastic={0.2}
               >
-                {/* Product Card 1 - Mobile Optimized */}
-                <motion.div 
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 min-w-[85%] sm:min-w-0"
-                  variants={fadeInUp}
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
+                {latestProducts.length > 0 ? (
+                  latestProducts.map((product) => (
+              <motion.div 
+                key={product.id}
+                      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 min-w-[85%] sm:min-w-0"
+                      variants={fadeInUp}
+              >
+                      <div className="relative aspect-[4/3] overflow-hidden">
                       <Image 
-                      src="/images/products/f45ab71e-4395-4dd1-9b9b-c7ca82904477.jpeg"
-                      alt="Moroccan Masterpiece"
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transform hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-stone-900/80 backdrop-blur-sm text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
-                      Top Seller
-                    </div>
-                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white/90 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1">
-                      <Eye size={12} className="sm:hidden" />
-                      <Eye size={14} className="hidden sm:block" />
-                      <span className="text-xs sm:text-sm font-medium">43 people</span>
-                    </div>
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h3 className="text-lg sm:text-xl font-bold text-stone-900 line-clamp-1">Moroccan Masterpiece</h3>
-                      <div className="flex items-center gap-1">
-                        <Star size={12} className="sm:hidden text-amber-500 fill-amber-500" />
-                        <Star size={14} className="hidden sm:block text-amber-500 fill-amber-500" />
-                        <span className="text-xs sm:text-sm font-medium">5.0</span>
+                          src={product.images[0] || "/placeholder-image.jpg"}
+                        alt={product.name}
+                        fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          className="object-cover transform hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-amber-500/80 backdrop-blur-sm text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
+                          Latest
+                        </div>
+                        <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white/90 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1">
+                          <Eye size={12} className="sm:hidden" />
+                          <Eye size={14} className="hidden sm:block" />
+                          <span className="text-xs sm:text-sm font-medium">{viewCounts[product.id] || 0} people</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                        <Palette size={12} className="sm:hidden text-brown-700" />
-                        <Palette size={14} className="hidden sm:block text-brown-700" />
-                      </div>
-                      <span className="text-xs sm:text-sm text-stone-600">by Kibidou Artists</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg sm:text-2xl font-bold text-stone-900">24,990 MAD</span>
+                      <div className="p-4 sm:p-6">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                          <h3 className="text-lg sm:text-xl font-bold text-stone-900 line-clamp-1">{product.name}</h3>
+                          <div className="flex items-center gap-1">
+                            <Star size={12} className="sm:hidden text-amber-500 fill-amber-500" />
+                            <Star size={14} className="hidden sm:block text-amber-500 fill-amber-500" />
+                            <span className="text-xs sm:text-sm font-medium">5.0</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-brown-100 flex items-center justify-center">
+                            <Palette size={12} className="sm:hidden text-brown-700" />
+                            <Palette size={14} className="hidden sm:block text-brown-700" />
+                          </div>
+                          <span className="text-xs sm:text-sm text-stone-600">by {product.artist || "Kibidou"}</span>
+                        </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-lg sm:text-2xl font-bold text-stone-900">{product.price.toLocaleString()} MAD</span>
                       <motion.button 
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="p-1.5 sm:p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                            className="p-1.5 sm:p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
                       >
-                        <Heart size={16} className="sm:hidden text-stone-600" />
-                        <Heart size={18} className="hidden sm:block text-stone-600" />
+                            <Heart size={16} className="sm:hidden text-stone-600" />
+                            <Heart size={18} className="hidden sm:block text-stone-600" />
                       </motion.button>
                     </div>
-                  </div>
-                </motion.div>
-
-                {/* Product Card 2 - Mobile Optimized */}
-                <motion.div 
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 min-w-[85%] sm:min-w-0"
-                  variants={fadeInUp}
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <Image
-                      src="/images/products/2a4bc75b-9eea-4fc4-b690-ac40a3c4871e.jpeg"
-                      alt="Contemporary Abstract"
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transform hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-brown-700/80 backdrop-blur-sm text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
-                      Featured
+                        <div className="flex gap-2">
+                          <Link 
+                            href={`/frontend/product/${product.id}`}
+                            className="flex-1 bg-brown-600 text-white py-2.5 rounded-lg hover:bg-brown-700 transition duration-300 flex items-center justify-center gap-1 text-sm font-medium shadow-md"
+                          >
+                            View Product <ChevronRight size={14} />
+                          </Link>
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="p-2.5 bg-amber-500 hover:bg-amber-600 rounded-lg shadow-md transition-all duration-300 border border-amber-400"
+                            aria-label="Add to cart"
+                          >
+                            <ShoppingCart className="h-5 w-5 text-white" />
+                          </motion.button>
                     </div>
-                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white/90 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1">
-                      <Eye size={12} className="sm:hidden" />
-                      <Eye size={14} className="hidden sm:block" />
-                      <span className="text-xs sm:text-sm font-medium">49 people</span>
                   </div>
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h3 className="text-lg sm:text-xl font-bold text-stone-900 line-clamp-1">Contemporary Abstract</h3>
-                      <div className="flex items-center gap-1">
-                        <Star size={12} className="sm:hidden text-amber-500 fill-amber-500" />
-                        <Star size={14} className="hidden sm:block text-amber-500 fill-amber-500" />
-                        <span className="text-xs sm:text-sm font-medium">5.0</span>
+                    </motion.div>
+                  ))
+                ) : (
+                  // Placeholder content if no latest products are available
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <motion.div 
+                      key={`placeholder-${index}`}
+                      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 min-w-[85%] sm:min-w-0"
+                      variants={fadeInUp}
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden bg-stone-200 animate-pulse">
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                        <Palette size={12} className="sm:hidden text-brown-700" />
-                        <Palette size={14} className="hidden sm:block text-brown-700" />
-                      </div>
-                      <span className="text-xs sm:text-sm text-stone-600">by Kibidou Gallery</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg sm:text-2xl font-bold text-stone-900">18,990 MAD</span>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-1.5 sm:p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-                      >
-                        <Heart size={16} className="sm:hidden text-stone-600" />
-                        <Heart size={18} className="hidden sm:block text-stone-600" />
-                      </motion.button>
+                      <div className="p-4 sm:p-6">
+                        <div className="w-3/4 h-6 bg-stone-200 rounded animate-pulse mb-4"></div>
+                        <div className="w-1/2 h-4 bg-stone-200 rounded animate-pulse mb-6"></div>
+                        <div className="w-1/3 h-8 bg-stone-200 rounded animate-pulse mb-4"></div>
+                        <div className="flex gap-2">
+                          <div className="flex-1 h-10 bg-stone-200 rounded animate-pulse"></div>
+                          <div className="w-10 h-10 bg-stone-200 rounded animate-pulse"></div>
                   </div>
                 </div>
               </motion.div>
-
-                {/* Product Card 3 - Mobile Optimized */}
-                <motion.div 
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 min-w-[85%] sm:min-w-0"
-                  variants={fadeInUp}
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <Image 
-                      src="/images/products/73e83ebd-29d3-42d7-bef2-574fb106d377.jpeg"
-                      alt="Modern Expression"
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transform hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-amber-500/80 backdrop-blur-sm text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
-                      Trending
-                    </div>
-                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white/90 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1">
-                      <Eye size={12} className="sm:hidden" />
-                      <Eye size={14} className="hidden sm:block" />
-                      <span className="text-xs sm:text-sm font-medium">37 people</span>
-                    </div>
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h3 className="text-lg sm:text-xl font-bold text-stone-900 line-clamp-1">Modern Expression</h3>
-                      <div className="flex items-center gap-1">
-                        <Star size={12} className="sm:hidden text-amber-500 fill-amber-500" />
-                        <Star size={14} className="hidden sm:block text-amber-500 fill-amber-500" />
-                        <span className="text-xs sm:text-sm font-medium">5.0</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-brown-100 flex items-center justify-center">
-                        <Palette size={12} className="sm:hidden text-brown-700" />
-                        <Palette size={14} className="hidden sm:block text-brown-700" />
-                      </div>
-                      <span className="text-xs sm:text-sm text-stone-600">by Kibidou Collection</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg sm:text-2xl font-bold text-stone-900">21,990 MAD</span>
-                      <motion.button 
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-1.5 sm:p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-                      >
-                        <Heart size={16} className="sm:hidden text-stone-600" />
-                        <Heart size={18} className="hidden sm:block text-stone-600" />
-                      </motion.button>
-                    </div>
-                  </div>
-                </motion.div>
+                  ))
+                )}
           </motion.div>
             </div>
 
@@ -1212,36 +1173,6 @@ export default function HomePage() {
               <button className="w-8 h-1.5 rounded-full bg-brown-600" aria-label="Go to slide 1"></button>
               <button className="w-3 h-1.5 rounded-full bg-stone-300 hover:bg-brown-300 transition-colors" aria-label="Go to slide 2"></button>
               <button className="w-3 h-1.5 rounded-full bg-stone-300 hover:bg-brown-300 transition-colors" aria-label="Go to slide 3"></button>
-            </div>
-
-            {/* Mobile Navigation Arrows */}
-            <div className="absolute top-1/2 left-0 right-0 z-30 flex justify-between px-2 -translate-y-1/2 pointer-events-none sm:hidden">
-              <motion.button
-                onClick={() => {
-                  const carousel = document.getElementById('latest-products-carousel');
-                  if (carousel) {
-                    carousel.scrollBy({ left: -300, behavior: 'smooth' });
-                  }
-                }}
-                className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 pointer-events-auto opacity-70 hover:opacity-100 transition-opacity"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <ChevronLeft size={24} />
-              </motion.button>
-              <motion.button
-                onClick={() => {
-                  const carousel = document.getElementById('latest-products-carousel');
-                  if (carousel) {
-                    carousel.scrollBy({ left: 300, behavior: 'smooth' });
-                  }
-                }}
-                className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 pointer-events-auto opacity-70 hover:opacity-100 transition-opacity"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <ChevronRight size={24} />
-              </motion.button>
             </div>
           </motion.div>
 

@@ -1,4 +1,4 @@
-import { prisma } from "@/app/lib/prisma";
+import { db } from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -6,11 +6,11 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 // GET /api/categories/[id] - Get a single category by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const category = await prisma.category.findUnique({
-      where: { id: params.id },
+    const category = await db.category.findUnique({
+      where: { id: context.params.id },
       include: {
         _count: {
           select: {
@@ -40,7 +40,7 @@ export async function GET(
 // DELETE /api/categories/[id] - Delete a category by ID
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     // Check if user is authenticated and is an admin
@@ -53,8 +53,8 @@ export async function DELETE(
     }
 
     // Check if category exists
-    const category = await prisma.category.findUnique({
-      where: { id: params.id },
+    const category = await db.category.findUnique({
+      where: { id: context.params.id },
       include: {
         products: {
           select: {
@@ -80,8 +80,8 @@ export async function DELETE(
     }
 
     // Delete category
-    await prisma.category.delete({
-      where: { id: params.id },
+    await db.category.delete({
+      where: { id: context.params.id },
     });
 
     return NextResponse.json({ message: "Category deleted successfully" });
@@ -97,7 +97,7 @@ export async function DELETE(
 // PATCH /api/categories/[id] - Update a category by ID
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     // Check if user is authenticated and is an admin
@@ -131,8 +131,8 @@ export async function PATCH(
     }
 
     // Check if category exists
-    const existingCategory = await prisma.category.findUnique({
-      where: { id: params.id },
+    const existingCategory = await db.category.findUnique({
+      where: { id: context.params.id },
     });
 
     if (!existingCategory) {
@@ -144,14 +144,14 @@ export async function PATCH(
 
     // Check if name or slug is already in use by another category
     if (body.name || body.slug) {
-      const duplicateCheck = await prisma.category.findFirst({
+      const duplicateCheck = await db.category.findFirst({
         where: {
           OR: [
             body.name ? { name: body.name } : {},
             body.slug ? { slug: body.slug } : {},
           ],
           NOT: {
-            id: params.id,
+            id: context.params.id,
           },
         },
       });
@@ -166,8 +166,8 @@ export async function PATCH(
     }
 
     // Update category
-    const updatedCategory = await prisma.category.update({
-      where: { id: params.id },
+    const updatedCategory = await db.category.update({
+      where: { id: context.params.id },
       data: {
         name: body.name !== undefined ? body.name : undefined,
         slug: body.slug !== undefined ? body.slug : undefined,
