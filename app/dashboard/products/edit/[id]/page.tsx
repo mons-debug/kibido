@@ -20,13 +20,14 @@ interface Product {
   categoryId: string;
   artist: string | null;
   featured: boolean;
+  latest: boolean;
   images: string[];
   gallery?: string[];
 }
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { id } = params;
+  const productId = params.id;
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -46,7 +47,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         setIsLoading(true);
         
         // Fetch product data
-        const productResponse = await fetch(`/api/products/${id}`);
+        const productResponse = await fetch(`/api/products/${productId}`);
         if (!productResponse.ok) {
           throw new Error("Failed to fetch product");
         }
@@ -77,7 +78,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     };
 
     fetchProductAndCategories();
-  }, [id]);
+  }, [productId]);
 
   // Generate slug from name
   const generateSlug = (name: string) => {
@@ -170,6 +171,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       categoryId: formData.get("categoryId") as string,
       artist: formData.get("artist") as string,
       featured: formData.get("featured") === "on",
+      latest: formData.get("latest") === "on",
       images: images,
       gallery: galleryImages,
     };
@@ -185,7 +187,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       // Log data being sent to help debugging
       console.log("Sending product data:", JSON.stringify(productData));
       
-      const response = await fetch(`/api/products/${id}`, {
+      const response = await fetch(`/api/products/${productId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -209,10 +211,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       const result = await response.json();
       console.log("Update successful:", result);
 
-      // Navigate after successful update
-      setTimeout(() => {
-        router.push("/dashboard/products");
-      }, 100);
+      // Navigate after successful update - don't use setTimeout as it can cause issues
+      router.push("/dashboard/products");
     } catch (error) {
       console.error("Failed to update product:", error);
       setFormError(error instanceof Error ? error.message : "Failed to update product. Please try again.");
@@ -482,6 +482,21 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 />
                 <label htmlFor="featured" className="ml-2 block text-sm text-gray-700">
                   Featured product (displayed prominently on the homepage)
+                </label>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="flex items-center">
+                <input
+                  id="latest"
+                  name="latest"
+                  type="checkbox"
+                  defaultChecked={product?.latest}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="latest" className="ml-2 block text-sm text-gray-700">
+                  Latest product (displayed in the Latest Artworks section on the homepage)
                 </label>
               </div>
             </div>

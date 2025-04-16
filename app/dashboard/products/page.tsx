@@ -18,6 +18,7 @@ interface Product {
   stock: number;
   categoryId: string;
   featured: boolean;
+  latest: boolean;
   images: string[];
   createdAt: string;
   updatedAt: string;
@@ -159,6 +160,11 @@ export default function ProductsPage() {
                         {product.featured && (
                           <span className="inline-flex items-center ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             Featured
+                          </span>
+                        )}
+                        {product.latest && (
+                          <span className="inline-flex items-center ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            Latest
                           </span>
                         )}
                       </td>

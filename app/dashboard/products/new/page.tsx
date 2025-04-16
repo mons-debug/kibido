@@ -132,6 +132,7 @@ export default function NewProductPage() {
       categoryId: formData.get("categoryId") as string,
       artist: formData.get("artist") as string,
       featured: formData.get("featured") === "on",
+      latest: formData.get("latest") === "on",
       images: images,
       gallery: galleryImages,
     };
@@ -381,6 +382,20 @@ export default function NewProductPage() {
                 />
                 <label htmlFor="featured" className="ml-2 block text-sm text-gray-700">
                   Featured product
+                </label>
+              </div>
+            </div>
+            
+            <div className="space-y-2 flex items-center">
+              <div className="flex items-center h-full pt-2">
+                <input
+                  id="latest"
+                  name="latest"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="latest" className="ml-2 block text-sm text-gray-700">
+                  Latest product (will display in latest products section)
                 </label>
               </div>
             </div>

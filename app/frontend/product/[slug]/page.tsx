@@ -20,6 +20,7 @@ interface Product {
   categoryId: string;
   artist: string | null;
   featured: boolean;
+  latest: boolean;
   category: {
     id: string;
     name: string;
@@ -200,6 +201,11 @@ export default function ProductDetail() {
                 {product.featured && (
                   <div className="absolute top-4 left-4 bg-brown-600 text-white px-3 py-1 text-xs font-medium rounded-md">
                     Œuvre en vedette
+                  </div>
+                )}
+                {product.latest && (
+                  <div className="absolute top-4 left-4 bg-amber-500 text-white px-3 py-1 text-xs font-medium rounded-md" style={{left: product.featured ? '120px' : '4px'}}>
+                    Nouveauté
                   </div>
                 )}
                 <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-1 text-sm font-medium flex items-center shadow-sm">

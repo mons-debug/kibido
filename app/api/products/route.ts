@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId');
     const limit = searchParams.get('limit');
     const featured = searchParams.get('featured') === 'true';
+    const latest = searchParams.get('latest') === 'true';
     const sortBy = searchParams.get('sortBy');
     
     // Build query options
@@ -34,8 +35,34 @@ export async function GET(request: NextRequest) {
       };
     }
     
-    // Add sorting if provided
-    if (sortBy) {
+    // Use the latest field for latest products
+    if (latest) {
+      queryOptions.where = {
+        ...queryOptions.where,
+        latest: true
+      };
+      
+      // If no latest products are marked, fall back to most recent
+      const latestProducts = await prisma.product.findMany({
+        where: { latest: true },
+        take: 1
+      });
+      
+      if (latestProducts.length === 0) {
+        // No products marked as 'latest', fallback to createdAt sorting
+        delete queryOptions.where?.latest;
+        queryOptions.orderBy = {
+          createdAt: 'desc'
+        };
+        
+        // Limit to the most recent products (if no specific limit provided)
+        if (!limit) {
+          queryOptions.take = 8;
+        }
+      }
+    }
+    else if (sortBy) {
+      // Add sorting if provided and not "latest"
       const [field, order] = sortBy.split(':');
       queryOptions.orderBy = {
         [field]: order.toLowerCase() === 'desc' ? 'desc' : 'asc'
@@ -118,6 +145,7 @@ export async function POST(request: NextRequest) {
         categoryId: body.categoryId,
         artist: body.artist || null,
         featured: body.featured || false,
+        latest: body.latest || false,
         images: body.images || [],
         gallery: body.gallery || [],
       },

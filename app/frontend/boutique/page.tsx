@@ -28,7 +28,8 @@ import {
   Tag,
   DollarSign,
   SortAsc,
-  MessageCircle
+  MessageCircle,
+  Clock
 } from 'lucide-react';
 import AddToCart from '@/app/components/product/AddToCart';
 
@@ -44,6 +45,7 @@ interface Product {
   categoryId: string;
   artist: string | null;
   featured: boolean;
+  latest: boolean;
   category: {
     id: string;
     name: string;
@@ -728,6 +730,12 @@ export default function Boutique() {
                         {product.featured && (
                             <div className="bg-amber-500 text-white px-2 py-1 text-xs font-semibold rounded flex items-center gap-1 shadow-md">
                               <Sparkles size={12} /> Vedette
+                            </div>
+                          )}
+                          
+                          {product.latest && (
+                            <div className="bg-green-500 text-white px-2 py-1 text-xs font-semibold rounded flex items-center gap-1 shadow-md">
+                              <Clock size={12} /> Nouveauté
                             </div>
                           )}
                           
